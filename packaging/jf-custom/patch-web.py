@@ -51,6 +51,14 @@ MARKETING_PATCHES = [
     # nightly(v2.12.0-375+) 新增的 v2.12.2 安全升级营销横幅：把版本门槛判断短路成 false。
     # v2.12.1 发布包无此模块，0 命中属预期（升级由我们自己的 jf 包管，不劳云端提醒）。
     ('return!!t&&(n&&t===b?', 'return!1&&(n&&t===b?'),
+    # nightly 上 reo.dev 营销像素是独立的 <script> 标签（v2.12.1 里由 GTM 运行时注入，
+    # GTM 一死即灭；nightly 需单独断链）。前缀对：URL 变成空载荷 data: URL，不发任何请求。
+    ('https://static.reo.dev', 'data:text/javascript,'),
+    # 云端注册表 iframe（registry-access.html，向 netdata 云上报/同步看板 GUID）。
+    # 两种写法：字面量 URL（老写法）与运行时拼接 `data.registry + "/registry-access.html?x="`
+    # （入口 HTML 内联脚本，host 来自 agent 的 registry 配置）。内网无云，全部断链。
+    ('https://registry.my-netdata.io', 'about:blank#'),
+    ('data.registry + "/registry-access.html?x="', '"about:blank#registry?x="'),
 ]
 
 # 参与补丁的入口 HTML（相对 web 目录）
@@ -215,7 +223,12 @@ def install_runtime(web_dir, runtime_src, report):
     """安装 v3/jf-zh-runtime.js 并注入 <script> 到各入口 HTML。
 
     在词典 pass 之后调用（脚本自身不做词典替换）；
-    幂等：HTML 中已有引用则跳过注入。
+    幂等：HTML 中已有引用则只做路径形态校正。
+
+    ★ 必须用绝对路径 /v3/jf-zh-runtime.js：SPA 深链（如 /spaces/ly/rooms/local/overview）
+    由 agent 以同一张 index.html 应答，相对 src 会解析到 /spaces/.../v3/… → 404，
+    整个运行时脚本不执行（按钮不隐藏、图表标题不翻译）。绝对路径对根入口、
+    /v3/ 入口与任意深链一律正确（netdata 总在源站根下提供 web）。
     """
     if not runtime_src or not os.path.exists(runtime_src):
         report.append(f'[WARN] 运行时脚本缺失 ({runtime_src})，跳过注入')
@@ -224,16 +237,23 @@ def install_runtime(web_dir, runtime_src, report):
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     shutil.copyfile(runtime_src, dst)
     report.append(f'[OK] v3/jf-zh-runtime.js 安装 ({os.path.getsize(dst)}B)')
+    tag = '<script src="/v3/jf-zh-runtime.js"></script>'
     for rel in ENTRY_HTML:
         path = os.path.join(web_dir, rel)
         if not os.path.exists(path):
             continue
-        # web 根下的 index.html 引用 v3/ 前缀；v3/ 目录内的页同目录引用
-        src_ref = 'v3/jf-zh-runtime.js' if rel == 'index.html' else 'jf-zh-runtime.js'
-        tag = f'<script src="{src_ref}"></script>'
         data = open(path, encoding='utf-8').read()
-        if 'jf-zh-runtime.js' in data:
-            report.append(f'[SKIP] {rel}: 运行时脚本已注入')
+        if tag in data:
+            report.append(f'[SKIP] {rel}: 运行时脚本已是绝对路径引用')
+            continue
+        if 'jf-zh-runtime.js' in data:  # 旧相对路径 → 迁移
+            data = data.replace('<script src="v3/jf-zh-runtime.js"></script>', tag)
+            data = data.replace('<script src="jf-zh-runtime.js"></script>', tag)
+            if tag in data:
+                open(path, 'w', encoding='utf-8').write(data)
+                report.append(f'[FIX] {rel}: 相对路径引用 → /v3/jf-zh-runtime.js（深链 404 修复）')
+            else:
+                report.append(f'[WARN] {rel}: 存在 jf-zh-runtime.js 引用但形态未知，需人工检查')
             continue
         if '</title>' in data:
             data = data.replace('</title>', '</title>' + tag, 1)
@@ -243,7 +263,7 @@ def install_runtime(web_dir, runtime_src, report):
             report.append(f'[WARN] {rel}: 找不到注入锚点（无 </title>/<head>）')
             continue
         open(path, 'w', encoding='utf-8').write(data)
-        report.append(f'[OK] {rel}: 注入 <script src="{src_ref}">')
+        report.append(f'[OK] {rel}: 注入 {tag}')
 
 
 def main():

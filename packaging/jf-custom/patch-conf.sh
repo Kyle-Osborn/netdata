@@ -25,7 +25,23 @@ else
   echo "[SKIP] netdata.conf 已存在，未改动"
 fi
 
-# 3) updater 脚本置换为退出 0 的桩（防御纵深：即使被 cron/timer 意外启用也不出网）
+# 3) 禁用云端注册表（agent 默认向 registry.my-netdata.io 注册/同步看板 GUID，
+#    浏览器侧会起隐藏 iframe 上报 hostname+machine_guid；内网去云化直接关闭。
+#    幂等追加：仅当 netdata.conf 尚无 [registry] 段时补写）
+CONF="$TREE/etc/netdata/netdata.conf"
+if ! grep -q '^\[registry\]' "$CONF" 2>/dev/null; then
+  cat >> "$CONF" <<'EOF'
+
+# JF 定制：内网部署禁用云端注册表（去云化）
+[registry]
+    enabled = no
+EOF
+  echo "[OK] netdata.conf 追加 [registry] enabled = no"
+else
+  echo "[SKIP] netdata.conf 已有 [registry] 段"
+fi
+
+# 4) updater 脚本置换为退出 0 的桩（防御纵深：即使被 cron/timer 意外启用也不出网）
 UPDATER="$TREE/usr/libexec/netdata/netdata-updater.sh"
 if [ -f "$UPDATER" ]; then
   cat > "$UPDATER" <<'EOF'
