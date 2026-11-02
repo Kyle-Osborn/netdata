@@ -68,6 +68,9 @@ MARKETING_PATCHES = [
     # 前缀对罩不住，需单独配对；指向本机未监听端口保持 DSN 可解析、传输即刻失败）
     ('https://o382276.ingest.sentry.io', 'https://127.0.0.1:2'),
     ('@o382276.ingest.sentry.io/5210883', '@127.0.0.1:2/5210883'),
+    # Sentry 控制台/文档外链（错误浮层里的 "view on sentry" 链接与控制台噪音），一并断链
+    ('https://sentry.io/organizations/', 'about:blank#'),
+    ('https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/', 'about:blank#'),
 ]
 
 # 参与补丁的入口 HTML（相对 web 目录）

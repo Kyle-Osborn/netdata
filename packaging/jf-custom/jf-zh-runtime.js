@@ -1088,6 +1088,24 @@
     return s;
   }
 
+  /* 维度名（图例/悬停显示）。只译 name 键且要求同对象 id===name（维度对象
+     形态 {id:"some 10",name:"some 10"}；节点对象 {id:uuid,name:主机名}
+     id!==name 自然跳过），全部精确匹配，不碰 id（数据系列键）。 */
+  var DIMS = {
+    "load1": "1 分钟负载", "load5": "5 分钟负载", "load15": "15 分钟负载",
+    "unsync": "未同步", "sync": "已同步", "time": "时间",
+    "total": "总计", "used": "已用", "free": "可用",
+    "cached": "已缓存", "buffers": "缓冲"
+  };
+  function trDim(s) {
+    if (DIMS[s] !== undefined) return DIMS[s];
+    var m = /^some (\d+)$/.exec(s);
+    if (m) return '部分压力 ' + m[1] + ' 秒';
+    m = /^full (\d+)$/.exec(s);
+    if (m) return '完全压力 ' + m[1] + ' 秒';
+    return s;
+  }
+
   function walk(o, depth) {
     if (!o || depth > 14) return;
     if (Array.isArray(o)) {
@@ -1102,6 +1120,7 @@
         if (k === 'title') o[k] = trTitle(v);
         else if (k === 'label') { if (D[v] !== undefined) o[k] = D[v]; }
         else if (k === 'family') { if (FAM[v] !== undefined) o[k] = FAM[v]; }
+        else if (k === 'name' && o.id === v) { var dv = trDim(v); if (dv !== v) o[k] = dv; }
       } else if (v && typeof v === 'object') {
         walk(v, depth + 1);
       }
