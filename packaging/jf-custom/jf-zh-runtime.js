@@ -1095,7 +1095,18 @@
     "load1": "1 分钟负载", "load5": "5 分钟负载", "load15": "15 分钟负载",
     "unsync": "未同步", "sync": "已同步", "time": "时间",
     "total": "总计", "used": "已用", "free": "可用",
-    "cached": "已缓存", "buffers": "缓冲"
+    "cached": "已缓存", "buffers": "缓冲",
+    /* CPU（system.cpu） */
+    "user": "用户", "system": "系统", "nice": "低优先级", "iowait": "I/O 等待",
+    "softirq": "软中断", "irq": "硬件中断", "interrupt": "中断", "idle": "空闲",
+    "steal": "被抢占", "guest": "客户机", "guest_nice": "客户机低优先级",
+    /* 内存（system.ram / mem.*） */
+    "active": "活动", "inactive": "非活动", "wired": "固定",
+    /* 网络（net.* / tcp.*） */
+    "received": "接收", "sent": "发送", "outbound": "出站", "inbound": "入站",
+    "established": "已建立", "listening": "监听",
+    /* 磁盘（disk.*） */
+    "reads": "读", "writes": "写"
   };
   function trDim(s) {
     if (DIMS[s] !== undefined) return DIMS[s];
@@ -1121,6 +1132,13 @@
         else if (k === 'label') { if (D[v] !== undefined) o[k] = D[v]; }
         else if (k === 'family') { if (FAM[v] !== undefined) o[k] = FAM[v]; }
         else if (k === 'name' && o.id === v) { var dv = trDim(v); if (dv !== v) o[k] = dv; }
+      } else if (k === 'labels' && Array.isArray(v) && o.data !== undefined) {
+        /* /api/v3/data 时序结果 {labels:[...],data:[[...]]}：labels 即卡片图例
+           维度名。仅当同对象存在 data 数组才处理（防误伤 summary.labels 等
+           查询元数据），只译已知维度词，设备名/主机名/插件名原样通过。 */
+        for (var li = 0; li < v.length; li++) {
+          if (typeof v[li] === 'string') { var ld = trDim(v[li]); if (ld !== v[li]) v[li] = ld; }
+        }
       } else if (v && typeof v === 'object') {
         walk(v, depth + 1);
       }
@@ -1165,7 +1183,9 @@
           || url.indexOf('/api/v1/charts') !== -1
           || url.indexOf('/api/v1/contexts') !== -1
           || url.indexOf('/api/v3/nodes') !== -1
-          || url.indexOf('/api/v3/info') !== -1;
+          || url.indexOf('/api/v3/info') !== -1
+          /* /api/v3/data = 图表卡片时序数据（labels 即图例维度名） */
+          || url.indexOf('/api/v3/data') !== -1;
         if (!isApi) return resp;
         return resp.clone().text().then(function (txt) {
           var t = txt.trim();
