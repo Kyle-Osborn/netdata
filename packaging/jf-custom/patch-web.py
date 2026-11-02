@@ -38,6 +38,21 @@ DE_CLOUD_PATCHES = [
 # 参与补丁的入口 HTML（相对 web 目录）
 ENTRY_HTML = ['index.html', 'v3/index.html', 'v3/agent.html', 'v3/local-agent.html']
 
+# sw.js 中和桩：安装即跳过等待、激活即清空全部缓存并注销自身。
+# 原版 workbox SW 预缓存 876 个资源（含 index.html/chunk），而我们的补丁同名改内容、
+# sw.js 字节不变 → 浏览器永不触发 SW 更新 → 升级后一直用旧界面。内网部署不需要离线缓存，直接废掉。
+SW_STUB = '''/* JF 定制：禁用 dashboard service worker 预缓存。
+   本文件安装后即清空全部缓存并注销自身，浏览器此后始终直连 agent 取最新界面。 */
+self.addEventListener('install', function () { self.skipWaiting(); });
+self.addEventListener('activate', function (e) {
+  e.waitUntil((async function () {
+    var keys = await caches.keys();
+    await Promise.all(keys.map(function (k) { return caches.delete(k); }));
+    await self.registration.unregister();
+  })());
+});
+'''
+
 
 def patch_entry_html(web_dir, brand_name, report):
     """入口页：去云化 + 标题品牌化"""
@@ -158,6 +173,21 @@ def patch_dict_strings(web_dir, entries, report):
     return counts
 
 
+def neutralize_sw(web_dir, report):
+    """用自注销桩替换 v3/sw.js：浏览器检测到 sw.js 字节变化 → 触发更新 →
+    新 SW 激活时清空旧预缓存并注销。老访客自动痊愈，此后界面升级不再被 SW 卡住。"""
+    path = os.path.join(web_dir, 'v3', 'sw.js')
+    if not os.path.exists(path):
+        report.append('[WARN] v3/sw.js 不存在（上游改版？），跳过 SW 中和')
+        return
+    cur = open(path, encoding='utf-8', errors='replace').read()
+    if 'JF 定制：禁用 dashboard service worker' in cur:
+        report.append('[SKIP] v3/sw.js 已是中和桩')
+        return
+    open(path, 'w', encoding='utf-8').write(SW_STUB)
+    report.append(f'[OK] v3/sw.js 置换为自注销桩 ({os.path.getsize(path)}B，原 {len(cur)}B)')
+
+
 def install_runtime(web_dir, runtime_src, report):
     """安装 v3/jf-zh-runtime.js 并注入 <script> 到各入口 HTML。
 
@@ -217,6 +247,7 @@ def main():
         counts = patch_dict_strings(web_dir, entries, report)
     else:
         report.append('[WARN] 未提供词典，跳过中文化')
+    neutralize_sw(web_dir, report)
     install_runtime(web_dir, args.runtime, report)
 
     text = '\n'.join(report)
