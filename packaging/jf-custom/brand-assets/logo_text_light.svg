@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="230" height="40" viewBox="0 0 230 40">
+  <defs>
+    <linearGradient id="jfg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2E7CF6"/>
+      <stop offset="1" stop-color="#00C9A7"/>
+    </linearGradient>
+  </defs>
+  <rect width="36" height="36" x="1" y="2" rx="8" fill="url(#jfg)"/>
+  <rect x="9" y="8" width="20" height="5.6" rx="1.7" fill="#ffffff" opacity="0.95"/>
+  <rect x="9" y="16.2" width="20" height="5.6" rx="1.7" fill="#ffffff" opacity="0.85"/>
+  <rect x="9" y="24.4" width="20" height="5.6" rx="1.7" fill="#ffffff" opacity="0.75"/>
+  <text x="48" y="27.5" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif"
+        font-size="21" font-weight="600" fill="#1B1F24">机房监控中心</text>
+</svg>

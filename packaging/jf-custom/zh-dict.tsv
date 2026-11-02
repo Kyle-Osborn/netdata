@@ -1,0 +1,216 @@
+# Netdata dashboard v3 中英词典（TSV：原文<TAB>中文）
+# 规则：
+#  - 多词短语直接原文整串替换（足够独特）
+#  - 单词标签必须带属性锚点（title:"X" / label:"X" / header:"X" / children:"X" / >X<），
+#    严禁裸替换单词（例如 "Home" 是键盘 key 判断，裸换会破坏功能）
+#  - 补丁器按原文长度降序应用，无需关心本文件顺序
+#
+# ---- 启动/登录页 ----
+Welcome to Netdata	欢迎使用机房监控
+Please sign-in to continue	请登录后继续
+Skip and use the dashboard anonymously.	跳过并匿名使用看板。
+Please connect your agent to continue.	请先接入采集器再继续。
+Loading spaces...	机房加载中……
+Select room(s)	选择机房（可多选）
+Select room	选择机房
+Create a new room	新建机房
+Sign out to switch user	退出登录以切换用户
+Please wait...	请稍候……
+Cloud status	云端状态
+Netdata UI License	界面许可信息
+# ---- 认证按钮（多形态） ----
+Sign In	登录
+Sign in	登录
+Sign-in	登录
+Sign Out	退出登录
+Sign out	退出登录
+Sign in to Netdata to view traces.	登录后可查看调用链。
+# ---- 主导航（带属性锚点的单词标签） ----
+title:"Overview"	title:"总览"
+title:"Nodes"	title:"节点"
+title:"Dashboards"	title:"仪表盘"
+title:"Alerts"	title:"告警"
+title:"Anomalies"	title:"异常"
+title:"Events"	title:"事件"
+title:"Logs"	title:"日志"
+title:"Home"	title:"首页"
+title:"Trace"	title:"调用链"
+title:"Live"	title:"实时"
+title:"Configuration"	title:"配置"
+title:"Info"	title:"信息"
+title:"Netdata Fleet"	title:"Netdata 集群"
+label:"Overview"	label:"总览"
+label:"Nodes"	label:"节点"
+label:"Alerts"	label:"告警"
+label:"Metrics"	label:"指标"
+label:"Sensors"	label:"传感器"
+label:"Power"	label:"电源"
+label:"Servers"	label:"服务器"
+label:"Live"	label:"实时"
+label:"Logs"	label:"日志"
+label:"Journal"	label:"系统日志"
+label:"Events"	label:"事件"
+label:"Certificates"	label:"证书"
+label:"Endpoints"	label:"端点"
+label:"Queues"	label:"队列"
+label:"Topics"	label:"主题"
+header:"Alerts"	header:"告警"
+header:"Logs"	header:"日志"
+header:"Live"	header:"实时"
+headerString:()=>"Alerts"	headerString:()=>"告警"
+subtitle:"Nodes"	subtitle:"节点"
+subtitle:"Alerts"	subtitle:"告警"
+subtitle:"Dashboards"	subtitle:"仪表盘"
+children:"Alerts"	children:"告警"
+children:"Nodes"	children:"节点"
+# ---- 导航返回 ----
+Back to node	返回节点
+Back to Alerts	返回告警
+Back to Traces	返回调用链
+Back to Dashboards	返回仪表盘
+# ---- 启动页信息表（HTML 文本节点锚点） ----
+>Kernel<	>内核<
+>Hardware<	>硬件<
+>Retention<	>留存<
+>Plugins<	>插件<
+>Libraries<	>库<
+>Exporters<	>导出器<
+>Database<	>数据库<
+>Modules<	>模块<
+>Directories<	>目录<
+>Metrics<	>指标<
+>Samples<	>样本<
+>Current<	>当前<
+>Effective<	>生效<
+>Configured<	>配置<
+>Used<	>已用<
+>System<	>系统<
+>Disk<	>磁盘<
+>Tier<	>层级<
+>Stored<	>已存储<
+>Resolution<	>精度<
+>Clear<	>清除<
+>Next<	>下一步<
+>Claim<	>认领<
+# ---- 节点/告警相关 ----
+No alerts	暂无告警
+No nodes	暂无节点
+Loading nodes...	节点加载中……
+Node status	节点状态
+Node version	节点版本
+Node Inventory	节点清单
+Node Breakdown	节点分布
+Node note	节点备注
+Node ID	节点 ID
+Node Alerts	节点告警
+Total Nodes	节点总数
+Live nodes	在线节点
+Stale nodes	数据滞后节点
+Offline nodes	离线节点
+Select Nodes	选择节点
+Select nodes	选择节点
+Selected Nodes	已选节点
+Add Nodes	添加节点
+Connect Nodes	连接节点
+Locate node	定位节点
+Alert Name	告警名称
+Alert name	告警名称
+Alert Status	告警状态
+Alerts status	告警状态
+Critical Alerts	严重告警
+Warning Alerts	警告告警
+Raised Alerts	已触发告警
+Unreachable alert	不可达告警
+Alerts & Notifications	告警与通知
+Notification Methods	通知方式
+Edit alert	编辑告警
+Edit alert configuration	编辑告警配置
+Edit this alert configuration	编辑此告警配置
+You cannot edit this alert.	无法编辑此告警。
+Troubleshoot alert with AI	AI 排查告警
+No alerts	暂无告警
+# ---- 仪表盘/图表 ----
+Untitled Dashboard	未命名仪表盘
+Duplicate dashboard	复制仪表盘
+Duplicate Dashboard	复制仪表盘
+Dashboard duplicated!	仪表盘已复制！
+Dashboard successfully created!	仪表盘创建成功！
+Delete report	删除报表
+Go to chart	转到图表
+Chart type	图表类型
+Stats Overview	统计总览
+State Timeline	状态时间线
+Anomaly Rate	异常率
+Anomaly advisor	异常助手
+Anomalous metrics	异常指标
+Metrics available	可用指标
+Charts visualized	已可视化图表
+Alerts configured	已配置告警
+Network Traffic	网络流量
+Memory Usage	内存使用
+Disk Space	磁盘空间
+CPU Cores	CPU 核数
+CPU Frequency	CPU 频率
+Top by CPU	按 CPU 排序
+Dynamic filters	动态筛选
+# ---- 网络/磁盘统计 ----
+Total Network Inbound	网络总流入
+Total Network Outbound	网络总流出
+Total Network Errors	网络错误总数
+Total Network Drops	网络丢包总数
+Total Disk Reads	磁盘读取总量
+Total Disk Writes	磁盘写入总量
+Minimum Uptime	最短在线时长
+# ---- 节点类型复数词组 ----
+cpu cores	CPU 核心
+cpu core	CPU 核心
+network devices	网络设备
+network device	网络设备
+elastic nodes	Elasticsearch 节点
+elastic node	Elasticsearch 节点
+K8s nodes	K8s 节点
+K8s node	K8s 节点
+hyperv hosts	Hyper-V 主机
+hyperv host	Hyper-V 主机
+NVMe disks	NVMe 磁盘
+NVMe disk	NVMe 磁盘
+vm network interfaces	虚拟机网络接口
+vm network interface	虚拟机网络接口
+app pool uptime	应用池在线时长
+ping hosts	Ping 主机
+ping host	Ping 主机
+time series	时间序列
+network monitoring	网络监控
+host monitoring	主机监控
+network performance	网络性能
+Kubernetes Overview	Kubernetes 总览
+# ---- 通用操作/状态 ----
+Yes, delete	确认删除
+Download as CSV	下载为 CSV
+Delete item?	删除该项？
+You are about to delete	即将删除
+Delete is disabled	删除已禁用
+Invalid time value	无效的时间值
+Learn more.	了解更多。
+Learn more	了解更多
+User Settings	用户设置
+User settings	用户设置
+Space Settings	空间设置
+Invite users	邀请用户
+Invite Users	邀请用户
+Space deleted	空间已删除
+Committed Nodes:	已占用节点：
+Committed Nodes	已占用节点
+Committed nodes	已占用节点
+Unlimited Metrics & Logs	无限指标与日志
+Ask a space administrator for access.	请联系空间管理员获取权限。
+Generator is already running	生成器已在运行
+Host labels	主机标签
+Visualize node locations on an interactive map	在交互地图上展示节点位置
+Map settings	地图设置
+Loading...	加载中……
+No agent data available.	无采集器数据。
+No eligible node for the traces function	没有支持调用链功能的节点
+# ---- 云相关（翻译而非移除；入口已由 isLocal 关闭） ----
+Sign in to Netdata Cloud	登录 Netdata Cloud
+Connect to Netdata Cloud	连接 Netdata Cloud
