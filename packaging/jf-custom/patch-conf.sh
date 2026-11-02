@@ -41,6 +41,21 @@ else
   echo "[SKIP] netdata.conf 已有 [registry] 段"
 fi
 
+# 5) 云端基址指向本机未监听端口（agent 的 /api/v3/info 会把 cloud base url 交给
+#    前端，UI 的 accounts/me、license、channel 等直连调用全部源于此；改死后
+#    连接即刻被拒，内网首屏不再等云端超时）
+if ! grep -q '^\[cloud\]' "$CONF" 2>/dev/null; then
+  cat >> "$CONF" <<'EOF2'
+
+# JF 定制：去云化——云端基址指向本机死端口（UI 云功能全部即刻失败）
+[cloud]
+    cloud base url = https://127.0.0.1:2
+EOF2
+  echo "[OK] netdata.conf 追加 [cloud] cloud base url = https://127.0.0.1:2"
+else
+  echo "[SKIP] netdata.conf 已有 [cloud] 段"
+fi
+
 # 4) updater 脚本置换为退出 0 的桩（防御纵深：即使被 cron/timer 意外启用也不出网）
 UPDATER="$TREE/usr/libexec/netdata/netdata-updater.sh"
 if [ -f "$UPDATER" ]; then

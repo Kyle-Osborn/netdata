@@ -1111,9 +1111,32 @@
   var origFetch = window.fetch ? window.fetch.bind(window) : null;
   if (!origFetch) return;
 
+  /* 去云化：已知云端主机一律改写为死端口（agent 的 /api/v3/info 会下发
+     cloud base url，UI 据此直连 app.netdata.cloud 的 accounts/license 等；
+     静态字节替换罩不住这类运行时数据源）。两层：外发 URL 重写 +
+     已拦 JSON 响应内的基址串替换。127.0.0.1:2 = 本机未监听端口，
+     连接即刻被拒，与内网不可达等价但零等待。 */
+  var CLOUD_HOSTS = ['https://app.netdata.cloud', 'https://o382276.ingest.sentry.io'];
+  var DEAD_LOCAL = 'https://127.0.0.1:2';
+  function deadify(u) {
+    for (var ci = 0; ci < CLOUD_HOSTS.length; ci++) {
+      if (u.indexOf(CLOUD_HOSTS[ci]) === 0) return DEAD_LOCAL + u.slice(CLOUD_HOSTS[ci].length);
+    }
+    return null;
+  }
+
   window.fetch = function () {
     var args = arguments;
     var url = (typeof args[0] === 'string') ? args[0] : ((args[0] && args[0].url) || '');
+    /* 层 1：外发请求命中云端主机 → 改写 URL（Request 对象 URL 不可变，按网络错误拒绝） */
+    var rw = deadify(url);
+    if (rw !== null) {
+      if (typeof args[0] === 'string') {
+        args = [rw].concat(Array.prototype.slice.call(args, 1));
+      } else {
+        return Promise.reject(new TypeError('JF: cloud request blocked: ' + url));
+      }
+    }
     return origFetch.apply(window, args).then(function (resp) {
       try {
         if (!resp.ok) return resp;
@@ -1122,11 +1145,16 @@
         var isApi = url.indexOf('/api/v3/q') !== -1
           || url.indexOf('/api/v1/charts') !== -1
           || url.indexOf('/api/v1/contexts') !== -1
-          || url.indexOf('/api/v3/nodes') !== -1;
+          || url.indexOf('/api/v3/nodes') !== -1
+          || url.indexOf('/api/v3/info') !== -1;
         if (!isApi) return resp;
         return resp.clone().text().then(function (txt) {
           var t = txt.trim();
           if (!t || (t.charAt(0) !== '{' && t.charAt(0) !== '[')) return resp;
+          /* 层 2：响应体内的云端基址串（如 info 下发的 cloud url）一并改写 */
+          for (var ci = 0; ci < CLOUD_HOSTS.length; ci++) {
+            t = t.split(CLOUD_HOSTS[ci]).join(DEAD_LOCAL);
+          }
           var data;
           try { data = JSON.parse(t); } catch (e) { return resp; }
           walk(data, 0);

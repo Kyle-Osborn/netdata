@@ -59,6 +59,15 @@ MARKETING_PATCHES = [
     # （入口 HTML 内联脚本，host 来自 agent 的 registry 配置）。内网无云，全部断链。
     ('https://registry.my-netdata.io', 'about:blank#'),
     ('data.registry + "/registry-access.html?x="', '"about:blank#registry?x="'),
+    # 云端 API 直连（本地模式下 UI 仍会调 accounts/me、license、channel、
+    # user_agent_node_access 等；内网这些请求挂起会拖慢首屏，直连是云依赖）。
+    # 指向本机未监听端口：连接即刻被拒（等价内网 DNS 失败但更快），URL 形态合法。
+    ('https://app.netdata.cloud', 'https://127.0.0.1:2'),
+    # Sentry 错误/会话上报（前端遥测，会把含内部主机名的报错发往 sentry.io）。
+    # 两种形态：API 字面量与 DSN（https://<key>@o382276.../5210883，key 在前缀，
+    # 前缀对罩不住，需单独配对；指向本机未监听端口保持 DSN 可解析、传输即刻失败）
+    ('https://o382276.ingest.sentry.io', 'https://127.0.0.1:2'),
+    ('@o382276.ingest.sentry.io/5210883', '@127.0.0.1:2/5210883'),
 ]
 
 # 参与补丁的入口 HTML（相对 web 目录）
