@@ -8,6 +8,8 @@ patch-web.py —— Netdata v2.12.x dashboard 成品资源补丁器（品牌化 
      （UI 包本地加载、关闭 PostHog 追踪、isLocal 直进看板跳过登录/认领）
   2. 品牌化：<title>、favicon.ico、netdata.svg 主 logo
   3. 中文化：按 zh-dict.csv 对 *.js/*.html 做字符串替换
+  4. 运行时脚本：安装 v3/jf-zh-runtime.js（隐藏登录/AI Insights 按钮 +
+     fetch 钩子翻译 agent 返回的图表标题/分组名），并注入各入口 HTML
 
 特性：幂等（重复执行报告 already patched）；输出逐条替换计数报告；
       词典按长度降序应用（防 "cpu cores" 被 "cpu core" 先替换）。
@@ -118,7 +120,7 @@ def load_dict(dict_path):
 
 
 def patch_dict_strings(web_dir, entries, report):
-    """对 web 目录下所有 *.js / *.html 应用词典（不含 .map / LICENSE）"""
+    """对 web 目录下所有 *.js / *.html 应用词典（不含 .map / LICENSE / 运行时脚本）"""
     counts = {en: 0 for en, _ in entries}
     files_changed = 0
     for root, _dirs, files in os.walk(web_dir):
@@ -127,6 +129,8 @@ def patch_dict_strings(web_dir, entries, report):
                 continue
             if fn.endswith('.LICENSE.txt') or fn.endswith('.map'):
                 continue
+            if fn == 'jf-zh-runtime.js':
+                continue  # 自己装的中文化运行时脚本，不许被词典改动
             path = os.path.join(root, fn)
             try:
                 data = open(path, encoding='utf-8').read()
@@ -154,12 +158,49 @@ def patch_dict_strings(web_dir, entries, report):
     return counts
 
 
+def install_runtime(web_dir, runtime_src, report):
+    """安装 v3/jf-zh-runtime.js 并注入 <script> 到各入口 HTML。
+
+    在词典 pass 之后调用（脚本自身不做词典替换）；
+    幂等：HTML 中已有引用则跳过注入。
+    """
+    if not runtime_src or not os.path.exists(runtime_src):
+        report.append(f'[WARN] 运行时脚本缺失 ({runtime_src})，跳过注入')
+        return
+    dst = os.path.join(web_dir, 'v3', 'jf-zh-runtime.js')
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    shutil.copyfile(runtime_src, dst)
+    report.append(f'[OK] v3/jf-zh-runtime.js 安装 ({os.path.getsize(dst)}B)')
+    for rel in ENTRY_HTML:
+        path = os.path.join(web_dir, rel)
+        if not os.path.exists(path):
+            continue
+        # web 根下的 index.html 引用 v3/ 前缀；v3/ 目录内的页同目录引用
+        src_ref = 'v3/jf-zh-runtime.js' if rel == 'index.html' else 'jf-zh-runtime.js'
+        tag = f'<script src="{src_ref}"></script>'
+        data = open(path, encoding='utf-8').read()
+        if 'jf-zh-runtime.js' in data:
+            report.append(f'[SKIP] {rel}: 运行时脚本已注入')
+            continue
+        if '</title>' in data:
+            data = data.replace('</title>', '</title>' + tag, 1)
+        elif '<head>' in data:
+            data = data.replace('<head>', '<head>' + tag, 1)
+        else:
+            report.append(f'[WARN] {rel}: 找不到注入锚点（无 </title>/<head>）')
+            continue
+        open(path, 'w', encoding='utf-8').write(data)
+        report.append(f'[OK] {rel}: 注入 <script src="{src_ref}">')
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--web-dir', required=True, help='解包后的 usr/share/netdata/web 目录')
     ap.add_argument('--dict', default=None, help='zh-dict.csv 路径')
     ap.add_argument('--assets', default=None, help='brand-assets 目录')
     ap.add_argument('--brand-name', default='机房监控中心')
+    ap.add_argument('--runtime', default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'jf-zh-runtime.js'),
+                    help='jf-zh-runtime.js 路径（默认取本工具同目录）')
     ap.add_argument('--report', default=None, help='报告输出文件')
     args = ap.parse_args()
 
@@ -176,6 +217,7 @@ def main():
         counts = patch_dict_strings(web_dir, entries, report)
     else:
         report.append('[WARN] 未提供词典，跳过中文化')
+    install_runtime(web_dir, args.runtime, report)
 
     text = '\n'.join(report)
     print(text)
