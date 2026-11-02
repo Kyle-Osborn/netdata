@@ -35,6 +35,24 @@ DE_CLOUD_PATCHES = [
      'posthogToken: ""'),
 ]
 
+# 去营销/动态标题补丁（对所有 *.js/*.html 全树字节替换，与词典同一 Walker）。
+# 每个 0 命中都会在报告里预警（上游改版信号）。
+MARKETING_PATCHES = [
+    # JS 启动后的动态标题会盖掉品牌 <title>：
+    #   document.title = data.hostname + ': Netdata Agent Console'
+    (': Netdata Agent Console', ': 机房监控中心'),
+    # GTM 营销标签。换成空载荷 data:/about:，不发起任何外联请求、控制台无 404 噪音；
+    # GTM 一死其运行时注入的像素/对比站（facebook/reo/g2）全部消失。
+    # 用裸域名前缀形态：同时覆盖整串 URL 写法与 minify 拼接写法（'...gtm.js?id='+i）
+    ('https://www.googletagmanager.com/gtm.js', 'data:text/javascript,'),
+    ('https://www.googletagmanager.com/ns.html', 'about:blank'),
+    # 云端状态页外链（升级提示横幅上的 "Check status page" 按钮）
+    ('https://status.netdata.cloud', 'about:blank'),
+    # nightly(v2.12.0-375+) 新增的 v2.12.2 安全升级营销横幅：把版本门槛判断短路成 false。
+    # v2.12.1 发布包无此模块，0 命中属预期（升级由我们自己的 jf 包管，不劳云端提醒）。
+    ('return!!t&&(n&&t===b?', 'return!1&&(n&&t===b?'),
+]
+
 # 参与补丁的入口 HTML（相对 web 目录）
 ENTRY_HTML = ['index.html', 'v3/index.html', 'v3/agent.html', 'v3/local-agent.html']
 
@@ -134,9 +152,10 @@ def load_dict(dict_path):
     return entries
 
 
-def patch_dict_strings(web_dir, entries, report):
-    """对 web 目录下所有 *.js / *.html 应用词典（不含 .map / LICENSE / 运行时脚本）"""
-    counts = {en: 0 for en, _ in entries}
+def patch_string_pairs(web_dir, pairs, report, header):
+    """对 web 目录下所有 *.js / *.html 应用 (old,new) 字节替换
+    （不含 .map / LICENSE / 运行时脚本）。词典与去营销补丁共用本 Walker。"""
+    counts = {old: 0 for old, _ in pairs}
     files_changed = 0
     for root, _dirs, files in os.walk(web_dir):
         for fn in files:
@@ -145,7 +164,7 @@ def patch_dict_strings(web_dir, entries, report):
             if fn.endswith('.LICENSE.txt') or fn.endswith('.map'):
                 continue
             if fn == 'jf-zh-runtime.js':
-                continue  # 自己装的中文化运行时脚本，不许被词典改动
+                continue  # 自己装的中文化运行时脚本，不许被改动
             path = os.path.join(root, fn)
             try:
                 data = open(path, encoding='utf-8').read()
@@ -155,22 +174,26 @@ def patch_dict_strings(web_dir, entries, report):
                 except OSError:
                     continue
             orig = data
-            for en, zh in entries:
-                if en in data:
-                    n = data.count(en)
-                    data = data.replace(en, zh)
-                    counts[en] += n
+            for old, new in pairs:
+                if old in data:
+                    counts[old] += data.count(old)
+                    data = data.replace(old, new)
             if data != orig:
                 open(path, 'w', encoding='utf-8').write(data)
                 files_changed += 1
     total = sum(counts.values())
-    report.append(f'[INFO] 词典替换：共 {total} 处，涉及 {files_changed} 个文件，词条 {len(entries)} 条')
-    zero = [en for en, c in counts.items() if c == 0]
+    report.append(f'[INFO] {header}：共 {total} 处，涉及 {files_changed} 个文件，条目 {len(pairs)} 条')
+    zero = [old for old, c in counts.items() if c == 0]
     if zero:
-        report.append(f'[WARN] 0 命中词条 {len(zero)} 条（上游改版或锚点失效，需复核）:')
-        for en in zero:
-            report.append(f'        0-hit: {en}')
+        report.append(f'[WARN] {header} 0 命中 {len(zero)} 条（上游改版或锚点失效，需复核）:')
+        for old in zero:
+            report.append(f'        0-hit: {old}')
     return counts
+
+
+def patch_dict_strings(web_dir, entries, report):
+    """词典替换（zh-dict.tsv 条目）"""
+    return patch_string_pairs(web_dir, entries, report, '词典替换')
 
 
 def neutralize_sw(web_dir, report):
@@ -247,6 +270,7 @@ def main():
         counts = patch_dict_strings(web_dir, entries, report)
     else:
         report.append('[WARN] 未提供词典，跳过中文化')
+    patch_string_pairs(web_dir, MARKETING_PATCHES, report, '去营销/动态标题补丁')
     neutralize_sw(web_dir, report)
     install_runtime(web_dir, args.runtime, report)
 

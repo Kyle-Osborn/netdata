@@ -11,6 +11,7 @@
 | 中文化（静态） | `zh-dict.tsv` 词典对 dashboard v3 成品 JS/HTML 做字符串替换（v1 覆盖主导航/告警/节点/常用操作约 200 词条） |
 | 中文化（运行时） | `v3/jf-zh-runtime.js` 注入各入口页：① 隐藏登录与 AI Insights 按钮（CSS）；② fetch 钩子把 agent API（/api/v1/charts、/api/v1/contexts、/api/v3/q）返回的英文图表标题/分组成员名按词典译成中文（标题 "Base (chart-id)" 译基础名保留 chart id） |
 | 去云化 UI | 入口页改为官方 local-agent.html 的本地模式语义：UI 包本地加载（不访 app.netdata.cloud）、`isLocal:true` 直进看板（跳过登录/认领向导）、关闭 PostHog 行为追踪并置空 token |
+| 去营销（jf4+） | ① 动态标题 `hostname + ': Netdata Agent Console'` → `hostname + ': 机房监控中心'`（否则 JS 启动后会盖掉品牌 `<title>`）；② GTM 标签（`googletagmanager.com/gtm.js`/`ns.html`，裸域名前缀替换，兼容整串与 minify 拼接两种写法）→ 空载荷 `data:`/`about:blank`，GTM 一死其注入的 facebook/reo/g2 像素全部消失；③ `status.netdata.cloud` 云端状态页外链 → `about:blank` |
 | 去云化配置 | 内置遥测退出标记 `.opt-out-from-anonymous-statistics`；`netdata.conf` 禁用 agent 自动更新；updater 脚本置换为离线桩 |
 
 ## 用法
@@ -45,7 +46,8 @@ BRAND="某某监控" bash repack.sh ...
   - 图表标题/分组成员名（Metrics 树里的英文，来自 agent API 数据）→ 在 jf-zh-runtime.js 的 `D`/`FAM` 里加词条；
   然后对运行实例直接跑 patch-web.py 刷新 → 浏览器强刷验证 → 满意后重打包。
 - **验证运行时翻译**：`node test-jfzh.mjs`（如有）或浏览器直接看 Metrics 树；翻译是浏览器侧 fetch 钩子，curl API 看到的仍是英文（正常）。
-- **service worker 缓存**：dashboard v3 带 sw.js，升级/换包后浏览器可能拿到旧界面，需强刷（Ctrl+Shift+R）或清站点数据。
+- **service worker 缓存**：jf3 起 sw.js 已置换为自注销桩（安装即清缓存并注销），老访客会自动痊愈，无需强刷。
+- **常见误报「没变化」排查顺序**：① 确认访问的是哪个实例（宿主机 systemd netdata vs 容器，端口对应）；② SPA 路由切换不会重载页面，需 F5；③ 标题闪一下又变回英文 = 动态标题补丁未打上（看 patch-report 去营销条目命中数）；④ 真没生效再查 sw 缓存。
 - **web 资源与架构无关**：x86_64 与 aarch64 包共用同一套补丁，两架构各跑一次 repack 即可。
 - 词典命中报告里 `>X<` 形式的词条只作用于 HTML 文本节点。
 
