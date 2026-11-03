@@ -634,3 +634,5 @@ title:"Avg Memory Pressure (10 sec, some)"	title:"平均内存压力（10 秒，
 title:"Total Live Disk Space Used"	title:"在线磁盘已用空间总量"
 title:"Total Disk Space Consumed"	title:"已占用磁盘空间总量"
 tooltip:"Room Overview"	tooltip:"机房总览"
+"Group by"	"分组依据"
+&&"each as"	&&"各自按"
